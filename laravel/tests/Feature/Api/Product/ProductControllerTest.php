@@ -4,10 +4,15 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Api\Product;
 
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class ProductControllerTest extends TestCase
 {
+
+    use RefreshDatabase;
+    protected $seed = true; // Isso força o 'php artisan db:seed' a cada refresh
+
     public function testEndpointGetAllProducts(): void
     {
         $response = $this->get('/api/produtos');
@@ -30,5 +35,14 @@ class ProductControllerTest extends TestCase
 //            ]
 //        ]);
 
+    }
+
+    public function um_produto_pode_ser_excluido()
+    {
+
+        $response = $this->deleteJson("/api/produtos/2");
+
+        $response->assertStatus(200);
+        $this->assertDatabaseMissing('produtos', ['id' => 2]);
     }
 }

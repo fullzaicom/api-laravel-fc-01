@@ -7,18 +7,32 @@ namespace App\Http\Controllers;
 
 use App\Models\Produto;
 use Illuminate\Http\JsonResponse;
+use Symfony\Component\HttpFoundation\Response;
 
 class ProductController extends Controller
 {
     public function list(): JsonResponse
     {
-//        return response()->json('teste');
-//        $data = json_decode(
-//            file_get_contents(__DIR__ . '/mock/produtos.json')
-//        );
-
         $data = Produto::all(); //SELECT * FROM produtos
 
         return new JsonResponse($data);
     }
+
+    public function destroy(Produto $produto): JsonResponse
+    {
+        try {
+            $produto->delete();
+
+            return response()->json([
+                'message' => 'Produto excluído com sucesso!'
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Erro ao excluir produto.',
+                'error' => $e->getMessage()
+            ], Response::HTTP_BAD_REQUEST);
+        }
+    }
 }
+
+

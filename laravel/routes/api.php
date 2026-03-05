@@ -9,3 +9,4 @@ Route::get('/user', function (Request $request) {
 })->middleware('auth:sanctum');
 
 Route::get('/produtos', [ProductController::class, 'list']);
+Route::delete('/produtos/{produto}', [ProductController::class, 'destroy']);
