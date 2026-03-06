@@ -6,6 +6,7 @@ namespace Tests\Feature\Api\Product;
 
 use App\Models\Produto;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 class ProductControllerTest extends TestCase
@@ -14,7 +15,7 @@ class ProductControllerTest extends TestCase
 
     protected $seed = true;
 
-    /** @test */
+    #[Test]
     public function deve_listar_todos_os_produtos(): void
     {
         $response = $this->getJson('/api/produtos');
@@ -32,7 +33,7 @@ class ProductControllerTest extends TestCase
         $this->assertIsString($data[0]['nome']);
     }
 
-    /** @test */
+    #[Test]
     public function nao_deve_listar_produtos_deletados(): void
     {
         $this->deleteJson('/api/produtos/2');
@@ -46,7 +47,7 @@ class ProductControllerTest extends TestCase
         $this->assertFalse($ids->contains(2));
     }
 
-    /** @test */
+    #[Test]
     public function um_produto_pode_ser_excluido(): void
     {
         $response = $this->deleteJson('/api/produtos/2');
@@ -62,7 +63,7 @@ class ProductControllerTest extends TestCase
         $this->assertNotNull($produto->deleted_at);
     }
 
-    /** @test */
+    #[Test]
     public function nao_deve_deletar_produto_inexistente(): void
     {
         $response = $this->deleteJson('/api/produtos/999');
@@ -70,7 +71,7 @@ class ProductControllerTest extends TestCase
         $response->assertStatus(404);
     }
 
-    /** @test */
+    #[Test]
     public function deve_listar_apenas_produtos_na_lixeira(): void
     {
         $this->deleteJson('/api/produtos/2');
@@ -86,7 +87,8 @@ class ProductControllerTest extends TestCase
         $this->assertNotNull($data[0]['deleted_at']);
     }
 
-    /** @test */
+
+    #[Test]
     public function lixeira_deve_vir_vazia_quando_nao_existirem_produtos_deletados(): void
     {
         $response = $this->getJson('/api/produtos/trashed');
