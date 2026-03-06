@@ -10,70 +10,88 @@ use Tests\TestCase;
 
 class ProductControllerTest extends TestCase
 {
-
     use RefreshDatabase;
-    protected $seed = true; // Isso força o 'php artisan db:seed' a cada refresh
 
-    public function testEndpointGetAllProducts(): void
+    protected $seed = true;
+
+    /** @test */
+    public function deve_listar_todos_os_produtos(): void
     {
-        $response = $this->get('/api/produtos');
+        $response = $this->getJson('/api/produtos');
+
+        $response->assertStatus(200)
+            ->assertHeader('Content-Type', 'application/json');
 
         $data = $response->json();
 
-        $this->assertEquals(200, $response->getStatusCode());
-
         $this->assertIsArray($data);
-        $this->assertTrue(count($data) >= 1);
+        $this->assertNotEmpty($data);
 
         $this->assertArrayHasKey('id', $data[0]);
-
+        $this->assertArrayHasKey('nome', $data[0]);
         $this->assertIsString($data[0]['nome']);
-
-//        $response->assertExactJson([
-//            [
-//                'id' => 1,
-//                'nome' => 'Limao',
-//            ]
-//        ]);
-
     }
 
     /** @test */
-    public function um_produto_pode_ser_excluido()
+    public function nao_deve_listar_produtos_deletados(): void
     {
-        $this ->markTestSkipped("skipado porque e um falso test");
-        $response = $this->deleteJson("/api/produtos/2");
+        $this->deleteJson('/api/produtos/2');
+
+        $response = $this->getJson('/api/produtos');
 
         $response->assertStatus(200);
-        $this->assertDatabaseMissing('produtos', ['id' => 2]);
+
+        $ids = collect($response->json())->pluck('id');
+
+        $this->assertFalse($ids->contains(2));
     }
 
-    public function test_deve_listar_apenas_produtos_na_lixeira_com_a_data_de_exclusao(): void
+    /** @test */
+    public function um_produto_pode_ser_excluido(): void
     {
-        $this ->markTestSkipped("skipado porque e um falso test");
+        $response = $this->deleteJson('/api/produtos/2');
 
-        // 1. Criar um produto ativo
-        Produto::factory()->create(['nome' => 'Produto Ativo']);
+        $response->assertStatus(200);
 
-        // 2. Criar um produto e deletar (Soft Delete)
-        $produtoExcluido = Produto::factory()->create(['nome' => 'Produto na Lixeira']);
-        $produtoExcluido->delete();
+        $this->assertSoftDeleted('produtos', [
+            'id' => 2
+        ]);
 
-        // 3. Fazer a requisição para o endpoint de lixeira
+        $produto = Produto::withTrashed()->find(2);
+
+        $this->assertNotNull($produto->deleted_at);
+    }
+
+    /** @test */
+    public function nao_deve_deletar_produto_inexistente(): void
+    {
+        $response = $this->deleteJson('/api/produtos/999');
+
+        $response->assertStatus(404);
+    }
+
+    /** @test */
+    public function deve_listar_apenas_produtos_na_lixeira(): void
+    {
+        $this->deleteJson('/api/produtos/2');
+
         $response = $this->getJson('/api/produtos/trashed');
 
-        // 4. Asserts
         $response->assertStatus(200)
-            // Garante que o produto ativo NÃO está na lista
-            ->assertJsonMissing(['nome' => 'Produto Ativo'])
-            // Garante que o produto excluído ESTÁ na lista
-            ->assertJsonFragment(['nome' => 'Produto na Lixeira'])
-            // Garante que o campo 'deleted_at' ESTÁ presente no JSON
-            ->assertJsonStructure([
-                '*' => ['id', 'nome', 'deleted_at']
-            ]);
+            ->assertJsonCount(1);
 
-        // Verifica se o campo deleted_at não veio nulo na resposta
-        $this->assertNotNull($response->json()[0]['deleted_at']);
+        $data = $response->json();
+
+        $this->assertArrayHasKey('deleted_at', $data[0]);
+        $this->assertNotNull($data[0]['deleted_at']);
+    }
+
+    /** @test */
+    public function lixeira_deve_vir_vazia_quando_nao_existirem_produtos_deletados(): void
+    {
+        $response = $this->getJson('/api/produtos/trashed');
+
+        $response->assertStatus(200)
+            ->assertJsonCount(0);
     }
 }
